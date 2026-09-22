@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Píer da Vila — Pesca</title>
+<style>
+  :root{
+    --deep: #0b3d4c;
+    --deep2: #124f61;
+    --sunset1: #ff8a5b;
+    --sunset2: #ffb56b;
+    --sunset3: #ffd166;
+    --sand: #f4e4c8;
+    --ink: #0b2e38;
+    --card: #ffffff;
+    --good: #2f9e6e;
+    --danger: #d9534f;
+    --radius: 18px;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    height:100%;
+    margin:0;
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body{
+    background: linear-gradient(180deg, var(--sunset1) 0%, var(--sunset2) 22%, var(--sunset3) 38%, var(--deep2) 55%, var(--deep) 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    display:flex;
+    justify-content:center;
+    padding: env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px) 0;
+    color: var(--ink);
+  }
+  .app{
+    width:100%;
+    max-width:460px;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* Topbar */
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 18px;
+    color:#fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  .title{
+    font-size:15px;
+    font-weight:600;
+    opacity:0.95;
+    letter-spacing:0.3px;
+  }
+  .coins{
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(4px);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-weight:700;
+    font-size:15px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+  .coins span.num{ transition: transform 0.2s; display:inline-block; }
+  .coins.bump span.num{ transform: scale(1.3); color: #fff9c4; }
+
+  /* Scene */
+  .scene{
+    position:relative;
+    flex: 1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    min-height: 260px;
+  }
+  .sun{
+    position:absolute;
+    top:8%;
+    left:50%;
+    transform: translateX(-50%);
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 35%, #fff3c4, #ffce54 60%, #ffb347);
+    box-shadow: 0 0 40px 10px rgba(255,206,84,0.5);
+  }
+  .clouds{position:absolute; top:14%; width:100%; font-size:22px; opacity:0.85; pointer-events:none;}
+  .clouds span{position:absolute; animation: drift 40s linear infinite;}
+  .clouds span:nth-child(1){left:-10%; top:0px; animation-duration:55s;}
+  .clouds span:nth-child(2){left:-10%; top:30px; animation-duration:70s; animation-delay:-20s;}
+  @keyframes drift{ from{transform: translateX(0);} to{transform: translateX(520px);} }
+
+  .water{
+    position:relative;
+    width:100%;
+    height:58%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.12) 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .water::before{
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0; height:6px;
+    background: repeating-linear-gradient(90deg, rgba(255,255,255,0.5) 0 18px, transparent 18px 36px);
+    opacity:0.5;
+    animation: wave 3s linear infinite;
+  }
+  @keyframes wave{ from{background-position-x:0;} to{background-position-x:36px;} }
+
+  .rod-line{
+    position:absolute;
+    top:-90px;
+    left:50%;
+    width:2px;
+    height:90px;
+    background: rgba(255,255,255,0.7);
+    transform-origin: top center;
+  }
+  .bobber{
+    font-size:34px;
+    position:relative;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+  }
+  .bobber.idle{ animation: bob 2.2s ease-in-out infinite; }
+  .bobber.casting{ animation: sink 0.6s ease-in forwards; }
+  .bobber.waiting{ animation: bobWait 0.9s ease-in-out infinite; }
+  .bobber.bite{ animation: bite 0.35s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{transform: translateY(0);} 50%{transform: translateY(-6px);} }
+  @keyframes sink{ from{transform: translateY(-40px); opacity:0;} to{transform: translateY(0); opacity:1;} }
+  @keyframes bobWait{ 0%,100%{transform: translateY(0) rotate(0deg);} 50%{transform: translateY(3px) rotate(-4deg);} }
+  @keyframes bite{ 0%,100%{transform: translateY(0);} 50%{transform: translateY(10px) scale(0.95);} }
+
+  .result-pop{
+    position:absolute;
+    font-size:64px;
+    animation: popUp 0.5s cubic-bezier(.2,1.4,.4,1) forwards;
+    filter: drop-shadow(0 6px 8px rgba(0,0,0,0.35));
+  }
+  @keyframes popUp{
+    0%{ transform: translateY(20px) scale(0.3); opacity:0; }
+    60%{ transform: translateY(-10px) scale(1.15); opacity:1; }
+    100%{ transform: translateY(0) scale(1); opacity:1; }
+  }
+
+  .pier{
+    width:100%;
+    height:42%;
+    background: linear-gradient(180deg, #a9713f 0%, #8a5a34 100%);
+    position:relative;
+    border-top: 6px solid #c48a52;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+  }
+  .pier::before, .pier::after{
+    content:"";
+    position:absolute;
+    top:0; bottom:0;
+    width:10px;
+    background: repeating-linear-gradient(180deg, #7a4c2a 0 8px, #8a5a34 8px 16px);
+  }
+  .pier::before{ left:20%; }
+  .pier::after{ left:70%; }
+  .planks{
+    position:absolute;
+    inset:0;
+    background: repeating-linear-gradient(90deg, rgba(0,0,0,0.08) 0 2px, transparent 2px 46px);
+  }
+
+  .angler{
+    margin-top:14px;
+    font-size:56px;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25));
+    transform-origin: bottom center;
+  }
+  .angler.cast{ animation: castMotion 0.5s ease-out; }
+  @keyframes castMotion{ 0%{transform: rotate(0deg);} 30%{transform: rotate(-15deg);} 100%{transform: rotate(0deg);} }
+
+  /* Message bar */
+  .msgbar{
+    text-align:center;
+    padding: 10px 20px 4px;
+    min-height:26px;
+    color:#fff;
+    font-size:14px;
+    font-weight:600;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  /* Bottom panel */
+  .panel{
+    background: var(--sand);
+    border-radius: 24px 24px 0 0;
+    padding: 18px 20px calc(18px + env(safe-area-inset-bottom,0px));
+    box-shadow: 0 -6px 20px rgba(0,0,0,0.2);
+    position:relative;
+    z-index:2;
+  }
+  .inv-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+    font-size:13px;
+    color: var(--ink);
+    opacity:0.85;
+  }
+  .inv-row .bait{
+    background: rgba(11,61,76,0.08);
+    border-radius:999px;
+    padding:4px 10px;
+    font-weight:600;
+  }
+
+  .btn{
+    width:100%;
+    border:none;
+    border-radius: 16px;
+    padding: 16px;
+    font-size:17px;
+    font-weight:700;
+    cursor:pointer;
+    transition: transform 0.08s ease, box-shadow 0.15s ease;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+  }
+  .btn:active{ transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.15); }
+  .btn-main{
+    background: linear-gradient(180deg, #ff9a5a, #ff7e3d);
+    color:#fff;
+  }
+  .btn-main:disabled{
+    background: #d8b58f;
+    cursor: default;
+    box-shadow:none;
+  }
+  .btn-secondary{
+    background: var(--deep2);
+    color:#fff;
+    margin-top:10px;
+  }
+
+  .row-2{ display:flex; gap:10px; margin-top:10px; }
+  .row-2 .btn{ margin-top:0; }
+  .btn-ghost{
+    background: rgba(11,61,76,0.08);
+    color: var(--ink);
+    box-shadow:none;
+  }
+
+  /* Modal (shop / inventory) */
+  .overlay{
+    position:fixed;
+    inset:0;
+    background: rgba(0,0,0,0.45);
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:10;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity 0.2s ease;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .sheet{
+    width:100%;
+    max-width:460px;
+    background: var(--card);
+    border-radius: 22px 22px 0 0;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom,0px));
+    transform: translateY(20px);
+    transition: transform 0.25s cubic-bezier(.2,.9,.3,1);
+    max-height: 78vh;
+    overflow-y: auto;
+  }
+  .overlay.open .sheet{ transform: translateY(0); }
+  .sheet-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  .sheet-head h2{
+    margin:0;
+    font-size:18px;
+    font-weight:600;
+  }
+  .close-x{
+    background: rgba(11,61,76,0.08);
+    border:none;
+    width:32px;height:32px;
+    border-radius:50%;
+    font-size:16px;
+    cursor:pointer;
+    color: var(--ink);
+  }
+
+  .shop-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(11,61,76,0.05);
+    margin-bottom:10px;
+  }
+  .shop-item .emoji{ font-size:30px; width:40px; text-align:center; }
+  .shop-item .info{ flex:1; }
+  .shop-item .info .name{ font-weight:700; font-size:14px; }
+  .shop-item .info .desc{ font-size:12px; opacity:0.75; margin-top:2px; }
+  .shop-item .buy{
+    border:none;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-weight:700;
+    font-size:13px;
+    background: var(--good);
+    color:#fff;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .shop-item .buy.owned{ background: #9e9e9e; }
+  .shop-item .buy:disabled:not(.owned){ background:#c9c9c9; cursor:default; }
+  .shop-item.active{ outline: 2px solid var(--sunset1); }
+
+  .inv-list{ display:flex; flex-direction:column; gap:8px; }
+  .inv-list .item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 12px;
+    background: rgba(11,61,76,0.05);
+    border-radius:12px;
+    font-size:14px;
+  }
+  .inv-list .item .emoji{ font-size:22px; }
+  .inv-list .item .qty{ margin-left:auto; font-weight:700; opacity:0.7; }
+
+  .toast{
+    position:fixed;
+    top: calc(70px + env(safe-area-inset-top,0px));
+    left:50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: rgba(11,61,76,0.92);
+    color:#fff;
+    padding:10px 16px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:600;
+    opacity:0;
+    transition: all 0.25s ease;
+    z-index:20;
+    pointer-events:none;
+    white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+  @media (min-width: 480px){
+    body{ align-items:center; padding:20px 0; }
+    .app{ min-height: 90vh; border-radius: 28px; overflow:hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.35); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="title">🎣 Píer da Vila</div>
+    <div class="coins" id="coinsBox">🪙 <span class="num" id="coinsVal">0</span></div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="sun"></div>
+    <div class="clouds"><span>☁️</span><span>☁️</span></div>
+
+    <div class="water">
+      <div class="rod-line" id="rodLine">
+        <div class="bobber idle" id="bobber">🔴</div>
+      </div>
+      <div id="resultLayer"></div>
+    </div>
+
+    <div class="pier">
+      <div class="planks"></div>
+      <div class="angler" id="angler">🧍</div>
+    </div>
+  </div>
+
+  <div class="msgbar" id="msgbar">A brisa do mar balança sua linha...</div>
+
+  <div class="panel">
+    <div class="inv-row">
+      <span>Isca atual: <span class="bait" id="baitLabel">🍞 Pão</span></span>
+      <span id="rodLabel">🎋 Vara de bambu</span>
+    </div>
+    <button class="btn btn-main" id="castBtn">Lançar a linha</button>
+    <div class="row-2">
+      <button class="btn btn-ghost" id="shopBtn">🛒 Loja</button>
+      <button class="btn btn-ghost" id="invBtn">🎒 Inventário</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="shopOverlay">
+    <div class="sheet">
+      <div class="sheet-head">
+        <h2>🛒 Loja do Píer</h2>
+        <button class="close-x" data-close="shopOverlay">✕</button>
+      </div>
+      <div id="shopList"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="invOverlay">
+    <div class="sheet">
+      <div class="sheet-head">
+        <h2>🎒 Inventário</h2>
+        <button class="close-x" data-close="invOverlay">✕</button>
+      </div>
+      <div class="inv-list" id="invList"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Estado do jogo ---------- */
+  var state = {
+    coins: 0,
+    baitId: "pao",
+    catches: {}
+  };
+
+  var BAITS = [
+    { id:"pao", name:"Pão", emoji:"🍞", price:0, rareBonus:0 },
+    { id:"minhoca", name:"Minhoca", emoji:"🪱", price:15, rareBonus:0.08 },
+    { id:"camarao", name:"Camarão", emoji:"🦐", price:40, rareBonus:0.18 },
+    { id:"dourada", name:"Isca Dourada", emoji:"✨", price:90, rareBonus:0.32 }
+  ];
+
+  var LOOT = [
+    { id:"bota",     name:"Bota velha",       emoji:"👢", coins:0,  weight:16, tier:"junk" },
+    { id:"garrafa",  name:"Garrafa com mensagem", emoji:"🍾", coins:3,  weight:10, tier:"junk" },
+    { id:"peixe1",   name:"Peixinho comum",   emoji:"🐟", coins:8,  weight:34, tier:"common" },
+    { id:"peixe2",   name:"Peixe listrado",   emoji:"🐠", coins:14, weight:20, tier:"common" },
+    { id:"peixe3",   name:"Baiacu",           emoji:"🐡", coins:22, weight:10, tier:"rare" },
+    { id:"tesouro",  name:"Baú de tesouro",   emoji:"💎", coins:60, weight:4,  tier:"rare" },
+    { id:"lendario", name:"Peixe Lendário",   emoji:"🐋", coins:0,  weight:6,  tier:"legendary" }
+  ];
+
+  var RODS = [
+    { id:"bambu", name:"Vara de bambu", emoji:"🎋", price:0 }
+  ];
+
+  function currentBait(){
+    return BAITS.find(function(b){ return b.id === state.baitId; });
+  }
+
+  /* ---------- Elementos DOM ---------- */
+  var coinsVal = document.getElementById("coinsVal");
+  var coinsBox = document.getElementById("coinsBox");
+  var castBtn = document.getElementById("castBtn");
+  var bobber = document.getElementById("bobber");
+  var angler = document.getElementById("angler");
+  var msgbar = document.getElementById("msgbar");
+  var resultLayer = document.getElementById("resultLayer");
+  var baitLabel = document.getElementById("baitLabel");
+  var shopBtn = document.getElementById("shopBtn");
+  var invBtn = document.getElementById("invBtn");
+  var shopOverlay = document.getElementById("shopOverlay");
+  var invOverlay = document.getElementById("invOverlay");
+  var shopList = document.getElementById("shopList");
+  var invList = document.getElementById("invList");
+  var toast = document.getElementById("toast");
+
+  var toastTimer = null;
+  function showToast(text){
+    toast.textContent = text;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toast.classList.remove("show"); }, 1800);
+  }
+
+  function updateCoinsDisplay(){
+    coinsVal.textContent = state.coins;
+    coinsBox.classList.add("bump");
+    setTimeout(function(){ coinsBox.classList.remove("bump"); }, 220);
+  }
+
+  function updateBaitLabel(){
+    var b = currentBait();
+    baitLabel.textContent = b.emoji + " " + b.name;
+  }
+
+  function setMsg(text){
+    msgbar.textContent = text;
+  }
+
+  /* ---------- Loja ---------- */
+  function renderShop(){
+    shopList.innerHTML = "";
+    BAITS.forEach(function(b){
+      var owned = state.coins >= 0 && (b.id === state.baitId);
+      var canAfford = state.coins >= b.price;
+      var unlocked = ownsBait(b.id);
+      var row = document.createElement("div");
+      row.className = "shop-item" + (state.baitId === b.id ? " active" : "");
+      var priceLabel = b.price === 0 ? "Grátis" : ("🪙 " + b.price);
+      var btnLabel, btnClass, disabled;
+      if(state.baitId === b.id){
+        btnLabel = "Em uso";
+        btnClass = "buy owned";
+        disabled = true;
+      } else if(unlocked){
+        btnLabel = "Usar";
+        btnClass = "buy";
+        disabled = false;
+      } else {
+        btnLabel = priceLabel;
+        btnClass = "buy";
+        disabled = !canAfford;
+      }
+      row.innerHTML =
+        '<div class="emoji">' + b.emoji + '</div>' +
+        '<div class="info"><div class="name">' + b.name + '</div>' +
+        '<div class="desc">' + (b.rareBonus > 0 ? ("+" + Math.round(b.rareBonus*100) + "% chance de peixes raros") : "Isca inicial") + '</div></div>' +
+        '<button class="' + btnClass + '"' + (disabled ? " disabled" : "") + '>' + btnLabel + '</button>';
+      var buyBtn = row.querySelector("button");
+      buyBtn.addEventListener("click", function(){
+        if(state.baitId === b.id) return;
+        if(unlocked){
+          state.baitId = b.id;
+          updateBaitLabel();
+          renderShop();
+          showToast("Isca trocada para " + b.name + " " + b.emoji);
+          return;
+        }
+        if(state.coins < b.price){
+          showToast("Moedas insuficientes 🪙");
+          return;
+        }
+        state.coins -= b.price;
+        unlockBait(b.id);
+        state.baitId = b.id;
+        updateCoinsDisplay();
+        updateBaitLabel();
+        renderShop();
+        showToast("Comprou " + b.name + " " + b.emoji);
+      });
+      shopList.appendChild(row);
+    });
+  }
+
+  var unlockedBaits = { pao: true };
+  function ownsBait(id){ return !!unlockedBaits[id]; }
+  function unlockBait(id){ unlockedBaits[id] = true; }
+
+  /* ---------- Inventário ---------- */
+  function renderInventory(){
+    invList.innerHTML = "";
+    var keys = Object.keys(state.catches);
+    if(keys.length === 0){
+      invList.innerHTML = '<div class="item">Nada pescado ainda. Lance sua linha!</div>';
+      return;
+    }
+    keys.forEach(function(id){
+      var loot = LOOT.find(function(l){ return l.id === id; });
+      if(!loot) return;
+      var row = document.createElement("div");
+      row.className = "item";
+      row.innerHTML =
+        '<span class="emoji">' + loot.emoji + '</span>' +
+        '<span>' + loot.name + '</span>' +
+        '<span class="qty">x' + state.catches[id] + '</span>';
+      invList.appendChild(row);
+    });
+  }
+
+  /* ---------- Modais ---------- */
+  function openOverlay(el){ el.classList.add("open"); }
+  function closeOverlay(el){ el.classList.remove("open"); }
+
+  shopBtn.addEventListener("click", function(){ renderShop(); openOverlay(shopOverlay); });
+  invBtn.addEventListener("click", function(){ renderInventory(); openOverlay(invOverlay); });
+  document.querySelectorAll("[data-close]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      closeOverlay(document.getElementById(btn.getAttribute("data-close")));
+    });
+  });
+  [shopOverlay, invOverlay].forEach(function(ov){
+    ov.addEventListener("click", function(e){
+      if(e.target === ov) closeOverlay(ov);
+    });
+  });
+
+  /* ---------- Sorteio de pesca ---------- */
+  function pickLoot(){
+    var bait = currentBait();
+    var pool = LOOT.map(function(l){ return { item:l, weight:l.weight }; });
+
+    // aplica bônus de raridade da isca: aumenta peso de rare/legendary, reduz junk
+    pool.forEach(function(p){
+      if(bait.rareBonus > 0){
+        if(p.item.tier === "rare") p.weight *= (1 + bait.rareBonus * 4);
+        if(p.item.tier === "legendary") p.weight *= (1 + bait.rareBonus * 6);
+        if(p.item.tier === "junk") p.weight *= Math.max(0.35, 1 - bait.rareBonus * 1.5);
+      }
+    });
+
+    var total = pool.reduce(function(sum,p){ return sum + p.weight; }, 0);
+    var roll = Math.random() * total;
+    var acc = 0;
+    for(var i=0;i<pool.length;i++){
+      acc += pool[i].weight;
+      if(roll <= acc) return pool[i].item;
+    }
+    return pool[pool.length-1].item;
+  }
+
+  /* ---------- Fluxo de pesca ---------- */
+  var fishing = false;
+
+  castBtn.addEventListener("click", function(){
+    if(fishing) return;
+    fishing = true;
+    castBtn.disabled = true;
+    castBtn.textContent = "Aguardando...";
+    setMsg("A linha entrou na água... 🌊");
+
+    angler.classList.add("cast");
+    bobber.classList.remove("idle");
+    bobber.classList.add("casting");
+    setTimeout(function(){ angler.classList.remove("cast"); }, 500);
+
+    setTimeout(function(){
+      bobber.classList.remove("casting");
+      bobber.classList.add("waiting");
+      setMsg("Algo se mexe lá embaixo...");
+    }, 650);
+
+    var waitTime = 1000 + Math.random() * 2000;
+
+    setTimeout(function(){
+      bobber.classList.remove("waiting");
+      bobber.classList.add("bite");
+      setMsg("FISGOU! 🎣");
+
+      setTimeout(function(){
+        resolveCatch();
+      }, 500);
+    }, waitTime);
+  });
+
+  function resolveCatch(){
+    var loot = pickLoot();
+
+    if(loot.tier === "legendary"){
+      handleLegendary(loot);
+      return;
+    }
+
+    finishCatch(loot);
+  }
+
+  function finishCatch(loot){
+    state.catches[loot.id] = (state.catches[loot.id] || 0) + 1;
+    if(loot.coins > 0){
+      state.coins += loot.coins;
+      updateCoinsDisplay();
+    }
+
+    showResultPop(loot.emoji);
+
+    var msg;
+    if(loot.tier === "junk" && loot.coins === 0){
+      msg = "Só uma " + loot.name.toLowerCase() + "... nada de moedas. 😅";
+    } else if(loot.tier === "rare"){
+      msg = "Uau, " + loot.name + "! +" + loot.coins + " moedas 🪙";
+    } else {
+      msg = "Pescou: " + loot.name + " (+" + loot.coins + " 🪙)";
+    }
+    setMsg(msg);
+
+    resetCastButton();
+  }
+
+  function showResultPop(emoji){
+    var pop = document.createElement("div");
+    pop.className = "result-pop";
+    pop.textContent = emoji;
+    resultLayer.appendChild(pop);
+    setTimeout(function(){ pop.remove(); }, 1200);
+    bobber.classList.remove("bite");
+    bobber.classList.add("idle");
+  }
+
+  function resetCastButton(){
+    fishing = false;
+    castBtn.disabled = false;
+    castBtn.textContent = "Lançar a linha";
+  }
+
+  /* ---------- Peixe Lendário: escolha rápida ---------- */
+  function handleLegendary(loot){
+    setMsg("UM PEIXE LENDÁRIO PUXA A LINHA! 🐋");
+    bobber.classList.add("bite");
+
+    var choiceWrap = document.createElement("div");
+    choiceWrap.style.position = "fixed";
+    choiceWrap.style.inset = "0";
+    choiceWrap.style.background = "rgba(0,0,0,0.55)";
+    choiceWrap.style.display = "flex";
+    choiceWrap.style.flexDirection = "column";
+    choiceWrap.style.alignItems = "center";
+    choiceWrap.style.justifyContent = "center";
+    choiceWrap.style.zIndex = "30";
+    choiceWrap.style.gap = "14px";
+    choiceWrap.style.padding = "20px";
+    choiceWrap.style.textAlign = "center";
+
+    var label = document.createElement("div");
+    label.style.fontSize = "60px";
+    label.textContent = "🐋";
+
+    var text = document.createElement("div");
+    text.style.color = "#fff";
+    text.style.fontWeight = "700";
+    text.style.fontSize = "16px";
+    text.style.maxWidth = "320px";
+    text.textContent = "A linha está retesada! Decida rápido:";
+
+    var btnRow = document.createElement("div");
+    btnRow.style.display = "flex";
+    btnRow.style.gap = "12px";
+
+    var pullBtn = document.createElement("button");
+    pullBtn.textContent = "💪 Puxar";
+    styleChoiceBtn(pullBtn, "#ff7e3d");
+
+    var giveBtn = document.createElement("button");
+    giveBtn.textContent = "🎣 Dar linha";
+    styleChoiceBtn(giveBtn, "#124f61");
+
+    var countdown = document.createElement("div");
+    countdown.style.color = "#ffd166";
+    countdown.style.fontWeight = "700";
+    countdown.style.fontSize = "13px";
+    var timeLeft = 4;
+    countdown.textContent = timeLeft + "s";
+    var timerId = setInterval(function(){
+      timeLeft -= 1;
+      countdown.textContent = Math.max(timeLeft,0) + "s";
+      if(timeLeft <= 0){
+        clearInterval(timerId);
+        finalizeLegendary(loot, false, choiceWrap);
+      }
+    }, 1000);
+
+    btnRow.appendChild(pullBtn);
+    btnRow.appendChild(giveBtn);
+    choiceWrap.appendChild(label);
+    choiceWrap.appendChild(text);
+    choiceWrap.appendChild(btnRow);
+    choiceWrap.appendChild(countdown);
+    document.body.appendChild(choiceWrap);
+
+    pullBtn.addEventListener("click", function(){
+      clearInterval(timerId);
+      var success = Math.random() < 0.55;
+      finalizeLegendary(loot, success, choiceWrap);
+    });
+    giveBtn.addEventListener("click", function(){
+      clearInterval(timerId);
+      var success = Math.random() < 0.8;
+      finalizeLegendary(loot, success, choiceWrap);
+    });
+  }
+
+  function styleChoiceBtn(btn, color){
+    btn.style.border = "none";
+    btn.style.borderRadius = "14px";
+    btn.style.padding = "14px 18px";
+    btn.style.fontSize = "15px";
+    btn.style.fontWeight = "700";
+    btn.style.color = "#fff";
+    btn.style.background = color;
+    btn.style.cursor = "pointer";
+  }
+
+  function finalizeLegendary(loot, success, wrap){
+    wrap.remove();
+    if(success){
+      var reward = 120 + Math.floor(Math.random()*60);
+      loot = Object.assign({}, loot, { coins: reward, name:"Peixe Lendário" });
+      finishCatch(loot);
+      setMsg("Você fisgou o Lendário! +" + reward + " moedas 🐋🪙");
+    } else {
+      setMsg("A linha arrebentou... o Lendário escapou! 😱");
+      bobber.classList.remove("bite");
+      bobber.classList.add("idle");
+      resetCastButton();
+    }
+  }
+
+  /* ---------- Início ---------- */
+  updateCoinsDisplay();
+  updateBaitLabel();
+  renderShop();
+  renderInventory();
+})();
+</script>
+</body>
+</html>
